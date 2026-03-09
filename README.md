@@ -53,7 +53,18 @@ MyWatchList is a **social movie discovery platform** where:
 - Public profiles by default (can be made private in Phase 2)
 
 ---
+## Improvements
 
+The following improvements were added to the project:
+
+- Movie recommendation system
+- Movie trailer viewing feature
+- User review functionality
+- Improved navigation and routing
+- Poster fallback system for missing images
+- UI improvements using CSS modules
+
+---
 ## Tech Stack
 
 ### Frontend
