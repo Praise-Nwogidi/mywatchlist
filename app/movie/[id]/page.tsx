@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { useAuth, useProfile, useMovieDetails, useRating, useWatchlist, useUnreadActivityCount, TMDBService } from '@/hooks'
 import { toast } from 'sonner'
 import { Header } from '@/components/Header'
+import { supabase } from '@/lib/supabase'
 
 export default function MoviePage() {
   const params = useParams()
@@ -62,6 +63,59 @@ export default function MoviePage() {
       setSliderValue(userRating.rating_value)
     }
   }, [userRating])
+  const fetchReviews = async () => {
+  if (!movieId) return
+
+  const { data, error } = await supabase
+  .from('reviews')
+  .select('*')
+  .eq('movie_id', movieId)
+  .order('created_at', { ascending: false })
+
+  if (!error && data) {
+    setReviews(data)
+  }
+}
+useEffect(() => {
+  fetchReviews()
+}, [movieId])
+const handleSubmitReview = async () => {
+  if (!isLoggedIn) {
+    toast.error('You must be logged in to review')
+    return
+  }
+
+  if (!reviewText.trim()) {
+    toast.error('Review cannot be empty')
+    return
+  }
+
+  setIsSubmittingReview(true)
+
+  const { error } = await supabase.from('reviews').insert({
+    user_id: user?.id,
+    movie_id: movieId,
+    review_text: reviewText,
+    rating_value: sliderValue
+  })
+
+  setIsSubmittingReview(false)
+
+  if (error) {
+    toast.error('Failed to submit review')
+  } else {
+    toast.success('Review posted!')
+    setReviewText('')
+    fetchReviews()
+  }
+}
+  const [reviews, setReviews] = useState<any[]>([])
+const [reviewText, setReviewText] = useState('')
+const [isSubmittingReview, setIsSubmittingReview] = useState(false)
+
+const [trailerKey, setTrailerKey] = useState<string | null>(null)
+const [showTrailer, setShowTrailer] = useState(false)
+const [loadingTrailer, setLoadingTrailer] = useState(false)
 
   // Handle add to watchlist - ONLY if rated
   const handleAddToWatchlist = () => {
@@ -130,6 +184,35 @@ export default function MoviePage() {
       },
     })
   }
+
+  const handleWatchTrailer = async () => {
+  if (!movieId) return
+
+  setLoadingTrailer(true)
+
+  try {
+    const res = await fetch(
+      `https://api.themoviedb.org/3/movie/${movieId}/videos?api_key=${process.env.NEXT_PUBLIC_TMDB_API_KEY}`
+    )
+
+    const data = await res.json()
+
+    const trailer = data.results.find(
+      (vid: any) => vid.type === "Trailer" && vid.site === "YouTube"
+    )
+
+    if (trailer) {
+      setTrailerKey(trailer.key)
+      setShowTrailer(true)
+    } else {
+      toast.error("Trailer not available")
+    }
+  } catch (err) {
+    toast.error("Failed to load trailer")
+  }
+
+  setLoadingTrailer(false)
+}
 
   const loading = isAuthLoading || isMovieLoading
 
@@ -232,6 +315,13 @@ export default function MoviePage() {
             </div>
 
             <p className={styles['movie-overview']}>{movie.overview}</p>
+            <button
+  className={styles['watch-trailer-btn']}
+  onClick={handleWatchTrailer}
+  disabled={loadingTrailer}
+>
+  {loadingTrailer ? 'LOADING TRAILER...' : 'WATCH TRAILER'}
+</button>
 
             {/* Personal Rating Section */}
             <div className={styles['rating-section']}>
@@ -331,7 +421,73 @@ export default function MoviePage() {
                 <span className={styles['total-ratings']}>{totalRatings} ALL TIME RATINGS</span>
               </div>
             </div>
+            {/* Reviews Section */}
+<div className={styles['reviews-section']}>
+  <div className={styles['reviews-header']}>
+    <h3>USER REVIEWS</h3>
+    <span className={styles['reviews-count']}>{reviews.length} Reviews</span>
+  </div>
 
+  {/* Write Review */}
+  {isLoggedIn && (
+    <div className={styles['write-review-box']}>
+      <textarea
+        placeholder="Share your thoughts about this movie..."
+        value={reviewText}
+        onChange={(e) => setReviewText(e.target.value)}
+        className={styles['review-input']}
+      />
+
+      <button
+        className={styles['post-review-btn']}
+        onClick={handleSubmitReview}
+      >
+        POST REVIEW
+      </button>
+    </div>
+  )}
+
+  {/* Reviews List */}
+  <div className={styles['reviews-list']}>
+    {reviews.length === 0 && (
+      <p className={styles['no-reviews']}>
+        No reviews yet. Be the first to share your thoughts!
+      </p>
+    )}
+
+    {reviews.map((review) => (
+      <div key={review.id} className={styles['review-card']}>
+
+        {/* Avatar */}
+        <div className={styles['review-avatar']}>
+          {review.profile?.username?.charAt(0).toUpperCase() || 'U'}
+        </div>
+
+        {/* Review Content */}
+        <div className={styles['review-content']}>
+          <div className={styles['review-top']}>
+            <span className={styles['review-username']}>
+              @{review.profile?.username || 'user'}
+            </span>
+
+            <span className={styles['review-rating']}>
+              ⭐ {review.rating_value}/10
+            </span>
+          </div>
+
+          <p className={styles['review-text']}>
+            {review.review_text}
+          </p>
+
+          <span className={styles['review-time']}>
+            {new Date(review.created_at).toLocaleDateString()}
+          </span>
+        </div>
+
+      </div>
+    ))}
+  </div>
+</div>
             {/* Recent User Activity */}
             {recentRatings.length > 0 && (
               <div className={styles['recent-activity']}>
@@ -360,6 +516,32 @@ export default function MoviePage() {
           </div>
         </div>
       </main>
+
+      {/* Trailer Popup */}
+{showTrailer && trailerKey && (
+  <div className={styles['trailer-overlay']}>
+
+    <div className={styles['trailer-modal']}>
+
+      <button
+        className={styles['close-trailer']}
+        onClick={() => setShowTrailer(false)}
+      >
+        ✕
+      </button>
+
+      <iframe
+        width="100%"
+        height="450"
+        src={`https://www.youtube.com/embed/${trailerKey}`}
+        title="Movie Trailer"
+        allowFullScreen
+      />
+
+    </div>
+
+  </div>
+)}
 
       {/* Footer */}
       <footer className={styles['movie-footer']}>
