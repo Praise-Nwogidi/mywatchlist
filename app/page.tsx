@@ -74,10 +74,8 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className={styles['landing-footer']}>
         <p>
-          Built with <span className={styles['heart']}>❤️</span> by{' '}
-          <a href="https://github.com/DevYoma" target="_blank" rel="noopener noreferrer" className={styles['author-link']}>
-            Yoma
-          </a>
+          Built by <a href="https://github.com/Praise-Nwogidi" target="_blank" rel="noopener noreferrer" className={styles['author-link']}>
+             Praise </a>
         </p>
       </footer>
     </div>
