@@ -4,7 +4,7 @@
 
 A social movie discovery platform built with modern web technologies. MyWatchList solves the problem of generic movie ratings by enabling users to follow others whose taste they align with and discover movies through trusted recommendations.
 
-**Live Demo:** [https://mywatchlist-eta.vercel.app/](https://mywatchlist-eta.vercel.app/)
+**Live Demo:** [https://mywatchlist-eta.vercel.app/](https://mywatchlist-eight.vercel.app/)
 
 ---
 
